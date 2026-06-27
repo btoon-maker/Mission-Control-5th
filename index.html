@@ -3269,26 +3269,46 @@
   </div>
 
 
-  <!-- ============================================================
-       MODAL 2 — EXPORT
-       ============================================================ -->
-  <div class="modal-overlay" id="modal-export" onclick="overlayClose(event,'modal-export')">
-    <div class="modal-box" role="dialog" aria-modal="true">
-      <div class="modal-header">
-        <div class="modal-title">📥 Export Your Mission Journal</div>
-        <button class="modal-close-btn" onclick="closeModal('modal-export')">✕</button>
+<!-- ============================================================
+     MODAL 2 — EXPORT
+     ============================================================ -->
+<div class="modal-overlay" id="modal-export" onclick="overlayClose(event,'modal-export')">
+  <div class="modal-box" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="modal-title">📥 Export Your Mission Journal</div>
+      <button class="modal-close-btn" onclick="closeModal('modal-export')">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div style="background:#f4f6f8;padding:12px 14px;border-radius:12px;margin-bottom:14px;line-height:1.45;color:#243044 !important;">
+        <p style="margin:0 0 10px 0;color:#243044 !important;">
+          <strong style="color:#1f2937 !important;">Have a study ID?</strong><br>
+          Enter it below. You will upload this Mission Journal in your engagement survey.
+        </p>
+
+        <p style="margin:0 0 10px 0;color:#243044 !important;">
+          <strong style="color:#1f2937 !important;">No study ID?</strong><br>
+          Enter your name or follow your teacher’s directions.
+        </p>
+
+        <p style="margin:0;color:#243044 !important;">
+          <strong style="color:#1f2937 !important;">Save your journal.</strong><br>
+          It will help during your post-lesson debrief.
+        </p>
       </div>
-      <div class="modal-body">
-        <p class="modal-text">Download a copy of your journal. Your choices and written responses will be included in the file.</p>
-        <label class="modal-label" for="export-name-input">Your Name or Student ID (optional)</label>
-        <input type="text" id="export-name-input" class="modal-input" placeholder="e.g. Alex S." maxlength="80" />
-      </div>
-      <div class="modal-footer">
-        <button class="btn-modal-secondary" onclick="closeModal('modal-export')">Cancel</button>
-        <button class="btn-modal-primary" onclick="doExport()">Download Journal (.txt)</button>
-      </div>
+
+      <p class="modal-text">Download a copy of your journal. Your choices and written responses will be included in the file.</p>
+
+      <label class="modal-label" for="export-name-input">Study ID or name:</label>
+      <input type="text" id="export-name-input" class="modal-input" placeholder="e.g. SIS-001 or Jordan" maxlength="80" />
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-modal-secondary" onclick="closeModal('modal-export')">Cancel</button>
+      <button class="btn-modal-primary" onclick="doExport()">Download Journal (.txt)</button>
     </div>
   </div>
+</div>
 
 
   <!-- ============================================================
