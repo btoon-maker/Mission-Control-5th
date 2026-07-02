@@ -1352,6 +1352,7 @@ function notifyLessonHeight() {
    selection change, every model run, and on final board generation. */
 function notifyLessonModelerState(reason) {
   try {
+    var gv = function(id){ var el = document.getElementById(id); return el && el.value ? el.value.trim() : ''; };
     window.parent.postMessage({
       type: 'new-orbit-data:state',
       reason: reason || 'change',
@@ -1359,7 +1360,9 @@ function notifyLessonModelerState(reason) {
       selectedPosition:  state.selectedPosition  || null,
       modelRunCount:     state.modelRunCount     || 0,
       lastModelOutcome:  state.lastModelOutcome  || null,
-      lastComboKey:      state.lastComboKey      || null
+      lastComboKey:      state.lastComboKey      || null,
+      r1: gv('r1'), r2: gv('r2'), r3: gv('r3'), r4: gv('r4'),
+      recText: state.lastModelOutcome ? (REC_TEXT[state.lastModelOutcome] || null) : null
     }, '*');
   } catch (e) {}
 }
@@ -2164,6 +2167,13 @@ function generateBoard() {
   }, 60);
   setTimeout(notifyLessonHeight, 500);
 }
+
+/* Keep the lesson's captured copy of the four responses current, including
+   edits made after the board is generated (Revise). */
+['r1','r2','r3','r4'].forEach(function(id){
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('blur', function(){ notifyLessonModelerState('response'); });
+});
 
 /* ----- thumbnail (smaller scene of the final modeled orbit) ----- */
 let thumbAnim = null;
