@@ -3305,7 +3305,7 @@
 
     <div class="modal-footer">
       <button class="btn-modal-secondary" onclick="closeModal('modal-export')">Cancel</button>
-      <button class="btn-modal-primary" onclick="doExport()">Download Journal (.txt)</button>
+      <button class="btn-modal-primary" onclick="doExport()">Download Journal (.html)</button>
     </div>
   </div>
 </div>
@@ -4289,29 +4289,20 @@
        EXPORT JOURNAL
        ============================================================ */
     function doExport() {
-      // Flush any unsaved textarea contents (the saveResponse debounce
-      // could otherwise drop a final keystroke right before export).
+      // Flush any unsaved textarea contents before exporting.
       document.querySelectorAll(
         '.journal-card textarea[data-journal], .response-group textarea[data-journal], .response-textarea'
-      ).forEach(el => {
-        if (el.id) state.responses[el.id] = el.value;
-      });
+      ).forEach(el => { if (el.id) state.responses[el.id] = el.value; });
 
-      // Snapshot the current page's time + iframe text before exporting,
-      // then restart the entry timer so tracking continues seamlessly.
       recordPageLeave();
       const exportPageId = state.currentPage;
       recordPageEnter(exportPageId);
 
       const name = document.getElementById('export-name-input').value.trim();
       const now  = new Date();
-      const ts   = now.toLocaleDateString('en-US', {
-        year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'
-      });
+      const ts   = now.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      const esc  = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-      /* ============================================================
-         PAGE LABELS — add new pages here as the lesson grows
-         ============================================================ */
       const pageLabels = {
         'page-opening':    'Opening Page',
         'page-section1':   'Section 1 — Mission Control: Tracking Aurora-3',
@@ -4330,30 +4321,20 @@
         'page-section12':  'Section 12 — Mission Control Data Review: Aurora-3',
         'page-section13':  'Section 13 — Mission Complete'
       };
-
-      /* ============================================================
-         CHOICE LABELS — add new choice groups here as the lesson grows
-         ============================================================ */
       const choiceLabels = {
         'teamChoice':             'Investigation Start — Team Choice (Section 3)',
         'dp2Choice':              'Investigation Focus Choice (Section 6)',
         'dp3Choice':              'Final Mission Choice (Section 11)',
         'orbitChallengeComplete': 'New Orbit Data Review Completed (Section 12)'
       };
-
       const choiceValueLabels = {
         'OrbitTracking': 'Join Orbit Tracking Team',
         'MotionAnalysis': 'Join Motion Analysis Team',
         'EarthForce': 'Earth Influence Team',
         'MotionOrbit': 'Forward Motion Team',
         'OrbitChallenge': 'Review New Orbit Data',
-        'true': 'Completed',
-        true: 'Completed'
+        'true': 'Completed', true: 'Completed'
       };
-
-      /* ============================================================
-         RESPONSE LABELS — fallback labels for textareas
-         ============================================================ */
       const responseLabels = {
         'journal-team-briefing':       'Mission Journal: Team Briefing (Section 5)',
         'journal-dp2-synthesis':       'Mission Journal: Synthesis (Section 8)',
@@ -4362,254 +4343,207 @@
         'journal-final-reflection-1':  'Mission Debrief Reflection: Satellites in Orbit (Section 13)',
         'journal-final-reflection-2':  'Mission Debrief Reflection: Evidence and Models (Section 13)'
       };
-
-      // Pull the full prompt text directly from the DOM <label> for each textarea
       function promptFor(textareaId) {
         const lbl = document.querySelector('label[for="' + textareaId + '"]');
         if (!lbl) return null;
         return (lbl.textContent || '').replace(/\s+/g, ' ').trim();
       }
-
-      // Format seconds as M:SS or H:MM:SS
       function fmtTime(seconds) {
         const s = Math.round(seconds || 0);
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        const ss = s % 60;
+        const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
         const pad = n => String(n).padStart(2, '0');
-        return h > 0 ? `${h}:${pad(m)}:${pad(ss)}` : `${m}:${pad(ss)}`;
+        return h > 0 ? h + ':' + pad(m) + ':' + pad(ss) : m + ':' + pad(ss);
       }
 
-      let lines = [
-        '================================================',
-        '  MISSION JOURNAL EXPORT',
-        '================================================', '',
-        'Lesson:       Mission Control: Tracking Aurora-3',
-        'Series:       Stories in Science · Grade 5', '',
-      ];
-
-      if (name) lines.push('Student:      ' + name);
-      lines.push('Resume Code:  ' + state.resumeCode);
-      lines.push('Current Page: ' + (pageLabels[state.currentPage] || state.currentPage));
-      lines.push('Exported:     ' + ts);
-      if (state.startedAt) {
-        const startDate = new Date(state.startedAt);
-        lines.push('Started:      ' + startDate.toLocaleDateString('en-US', {
-          year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'
-        }));
-      }
-      lines.push('Total Time:   ' + fmtTime(state.totalSeconds));
-
-      /* ------------------------------------------------
-         LESSON PATH — order pages were visited, with time
-         ------------------------------------------------ */
-      lines.push('', '------------------------------------------------');
-      lines.push('  LESSON PATH (in order visited)');
-      lines.push('------------------------------------------------');
-
-      if (!state.path || !state.path.length) {
-        lines.push('No path recorded yet.');
-      } else {
-        state.path.forEach((entry, i) => {
-          const label = pageLabels[entry.page] || entry.page;
-          const t = fmtTime(entry.durationSeconds);
-          lines.push('  ' + String(i + 1).padStart(2, ' ') + '. ' + label + '   [' + t + ']');
-        });
-      }
-
-      /* ------------------------------------------------
-         MISSION PATH — DECISION CHOICES
-         ------------------------------------------------ */
-      lines.push('', '------------------------------------------------');
-      lines.push('  MISSION PATH \u2014 DECISION CHOICES');
-      lines.push('------------------------------------------------');
-
-      const dp1Label = PATH_STEP_VALUE_LABELS[state.choices && state.choices.teamChoice] || null;
-      const dp2Label = PATH_STEP_VALUE_LABELS[state.choices && state.choices.dp2Choice]  || null;
-
-      lines.push('Decision Point 1 \u2014 Where Will You Begin?');
-      lines.push('  ' + (dp1Label ? '\u2713 ' + dp1Label : '(no choice recorded)'));
-      lines.push('');
-      lines.push('Decision Point 2 \u2014 Why Does Aurora-3 Stay in Orbit?');
-      lines.push('  ' + (dp2Label ? '\u2713 ' + dp2Label : '(no choice recorded)'));
-
-      /* ------------------------------------------------
-         JOURNAL ENTRIES — in the order students encounter
-         them. Walks the lesson section-by-section and emits
-         every decision, journal response, interactive text
-         entry, and (for Section 12) the modeler snapshot
-         captured on that page.
-         ------------------------------------------------ */
-
-      // Map each piece of stored data back to the page where it was made
-      const choicePage = {
-        teamChoice:             'page-section3',
-        dp2Choice:              'page-section6',
-        dp3Choice:              'page-section11',
-        orbitChallengeComplete: 'page-section12'
-      };
+      const choicePage = { teamChoice:'page-section3', dp2Choice:'page-section6', dp3Choice:'page-section11', orbitChallengeComplete:'page-section12' };
       const responsePage = {
-        'journal-team-briefing':       'page-section5',
-        'journal-dp2-synthesis':       'page-section8',
-        'journal-putting-it-together': 'page-section9',
-        'journal-gravity-connection':  'page-section10',
-        'journal-final-reflection-1':  'page-section13',
-        'journal-final-reflection-2':  'page-section13'
+        'journal-team-briefing':'page-section5', 'journal-dp2-synthesis':'page-section8',
+        'journal-putting-it-together':'page-section9', 'journal-gravity-connection':'page-section10',
+        'journal-final-reflection-1':'page-section13', 'journal-final-reflection-2':'page-section13'
       };
       const iframePage = {};
-      Object.entries(INTERACTIVE_MAP).forEach(([pageId, cfg]) => {
-        if (cfg && cfg.iframeId) iframePage[cfg.iframeId] = pageId;
-      });
-      // Iframes that aren't in INTERACTIVE_MAP but still produce data
-      if (!iframePage['iframe-evidence-board'])  iframePage['iframe-evidence-board']  = 'page-section8';
-      if (!iframePage['iframe-new-orbit-data'])  iframePage['iframe-new-orbit-data']  = 'page-section12';
+      Object.entries(INTERACTIVE_MAP).forEach(([pageId, cfg]) => { if (cfg && cfg.iframeId) iframePage[cfg.iframeId] = pageId; });
+      if (!iframePage['iframe-evidence-board']) iframePage['iframe-evidence-board'] = 'page-section8';
+      if (!iframePage['iframe-new-orbit-data']) iframePage['iframe-new-orbit-data'] = 'page-section12';
 
-      // Modeler labels (used inside the Section 12 block below)
-      const modelerMotionLabels = {
-        'increase': 'Adjust Forward Motion Higher (Motion A)',
-        'same':     'Maintain Current Forward Motion (Motion B)',
-        'decrease': 'Adjust Forward Motion Lower (Motion C)'
-      };
-      const modelerPositionLabels = {
-        'closer':  'Adjust Orbit Position Inward (Position A)',
-        'same':    'Maintain Current Orbit Position (Position B)',
-        'farther': 'Adjust Orbit Position Outward (Position C)'
-      };
-      const modelerOutcomeLabels = {
-        'stable':   'Stable orbit — the modeled orbit moved closest to the target path',
-        'moderate': 'Moderate improvement — closer to the target, but small instability remained',
-        'partial':  'Partial improvement — slight improvement, system not fully balanced',
-        'worse':    'Worse — the orbit became wider or less stable'
-      };
+      const modelerMotionLabels = { 'increase':'Adjust Forward Motion Higher (Motion A)', 'same':'Maintain Current Forward Motion (Motion B)', 'decrease':'Adjust Forward Motion Lower (Motion C)' };
+      const modelerPositionLabels = { 'closer':'Adjust Orbit Position Inward (Position A)', 'same':'Maintain Current Orbit Position (Position B)', 'farther':'Adjust Orbit Position Outward (Position C)' };
+      const modelerOutcomeLabels = { 'stable':'Stable orbit — the modeled orbit moved closest to the target path', 'moderate':'Moderate improvement — closer to the target, but small instability remained', 'partial':'Partial improvement — slight improvement, system not fully balanced', 'worse':'Worse — the orbit became wider or less stable' };
       const mc = state.modelerConstraints;
       const mcHasData = !!(mc && (mc.selectedMotion || mc.selectedPosition || mc.modelRunCount));
 
-      // Look up the friendly label for any iframe ID
       function interactiveLabelFor(iframeId) {
         let label = iframeId;
-        Object.values(INTERACTIVE_MAP).forEach(cfg => {
-          if (cfg && cfg.iframeId === iframeId && cfg.label) label = cfg.label;
-        });
+        Object.values(INTERACTIVE_MAP).forEach(cfg => { if (cfg && cfg.iframeId === iframeId && cfg.label) label = cfg.label; });
         return label;
       }
 
-      // Lesson section progression. Sections with no captured data are skipped.
       const sectionOrder = [
-        'page-section1',  'page-section2',
-        'page-section3',  'page-section4a', 'page-section4b',
-        'page-section5',  'page-section6',
-        'page-section7a', 'page-section7b',
-        'page-section8',  'page-section9',  'page-section10',
-        'page-section11', 'page-section12', 'page-section13'
+        'page-section1','page-section2','page-section3','page-section4a','page-section4b',
+        'page-section5','page-section6','page-section7a','page-section7b',
+        'page-section8','page-section9','page-section10','page-section11','page-section12','page-section13'
       ];
 
-      lines.push('', '------------------------------------------------');
-      lines.push('  JOURNAL ENTRIES (in lesson order)');
-      lines.push('------------------------------------------------');
+      // ---------- HTML builders ----------
+      const entryCard = (eyebrow, prompt, value, empty) =>
+        '<div class="entry">' + (eyebrow ? '<div class="ekic">' + esc(eyebrow) + '</div>' : '')
+        + (prompt ? '<h3 class="q">' + esc(prompt) + '</h3>' : '')
+        + (value ? '<p class="a">' + esc(value) + '</p>' : '<p class="a empty">' + esc(empty || '[No response entered]') + '</p>')
+        + '</div>';
+      const decisionCard = (label, valLabel) =>
+        '<div class="decision"><span class="dic">◆ Decision</span><div class="dl">' + esc(label) + '</div><div class="dv">→ ' + esc(valLabel) + '</div></div>';
+      const modelCard = (title, rowsHtml) =>
+        '<div class="model"><div class="model-h">🛰 ' + esc(title) + '</div>' + rowsHtml + '</div>';
+      const kv = (k, v) => '<div class="kv"><span class="kk">' + esc(k) + '</span><span class="kvv">' + esc(v) + '</span></div>';
 
-      let anySection = false;
+      // ---------- Journal walk (same order + data as the text export) ----------
+      let flow = '';
       sectionOrder.forEach(pageId => {
         const sectChoices   = Object.entries(state.choices         || {}).filter(([k]) => choicePage[k]   === pageId);
         const sectResponses = Object.entries(state.responses       || {}).filter(([k]) => responsePage[k] === pageId);
         const sectIframes   = Object.entries(state.iframeResponses || {}).filter(([k]) => iframePage[k]   === pageId);
         const showModeler   = (pageId === 'page-section12') && mcHasData;
-
-        // Run counts tracked via postMessage for this page's iframe(s)
-        const pageIframeId  = INTERACTIVE_MAP[pageId] ? INTERACTIVE_MAP[pageId].iframeId : null;
-        const runCount      = pageIframeId && state.iframeRunCounts && state.iframeRunCounts[pageIframeId];
-        const lastScenario  = pageIframeId && state.iframeScenarios && state.iframeScenarios[pageIframeId];
-        const stateSnapshot = pageIframeId && state.iframeStateSnapshots && state.iframeStateSnapshots[pageIframeId];
-
-        const hasRunData    = !!(runCount || lastScenario || stateSnapshot);
+        const pageIframeId   = INTERACTIVE_MAP[pageId] ? INTERACTIVE_MAP[pageId].iframeId : null;
+        const runCount       = pageIframeId && state.iframeRunCounts     && state.iframeRunCounts[pageIframeId];
+        const lastScenario   = pageIframeId && state.iframeScenarios     && state.iframeScenarios[pageIframeId];
+        const stateSnapshot  = pageIframeId && state.iframeStateSnapshots && state.iframeStateSnapshots[pageIframeId];
+        const hasRunData     = !!(runCount || lastScenario || stateSnapshot);
 
         if (!sectChoices.length && !sectResponses.length && !sectIframes.length && !showModeler && !hasRunData) return;
 
-        anySection = true;
-        lines.push('', '  --- ' + (pageLabels[pageId] || pageId) + ' ---');
+        flow += '<h2 class="section-label">' + esc(pageLabels[pageId] || pageId) + '</h2>';
 
-        // Decisions made on this page
         sectChoices.forEach(([k, v]) => {
-          const label    = choiceLabels[k] || k;
+          const label = choiceLabels[k] || k;
           const valLabel = choiceValueLabels[v] !== undefined ? choiceValueLabels[v] : String(v);
-          lines.push('', '  DECISION: ' + label);
-          lines.push('    → ' + valLabel);
+          flow += decisionCard(label, valLabel);
         });
 
-        // Text entered inside interactive iframes on this page
         sectIframes.forEach(([iframeId, items]) => {
-          lines.push('', '  INTERACTIVE: ' + interactiveLabelFor(iframeId));
+          const iLabel = interactiveLabelFor(iframeId);
           if (Array.isArray(items)) {
-            items.forEach(item => {
-              if (item && item.label) lines.push('    PROMPT:   ' + item.label);
-              lines.push('    RESPONSE:');
-              lines.push('      ' + (item && item.value ? String(item.value) : '').split('\n').join('\n      '));
-            });
+            items.forEach(item => { flow += entryCard(iLabel, item && item.label ? item.label : '', item && item.value ? item.value : ''); });
           } else if (typeof items === 'string') {
-            lines.push('    RESPONSE:');
-            lines.push('      ' + items.split('\n').join('\n      '));
+            flow += entryCard(iLabel, '', items);
           }
         });
 
-        // Run counts and scenario data captured via postMessage
         if (hasRunData) {
-          const interactiveLabel = pageIframeId ? interactiveLabelFor(pageIframeId) : (pageLabels[pageId] || pageId);
-          lines.push('', '  INTERACTIVE RUNS: ' + interactiveLabel);
-          if (runCount)     lines.push('    Model / Simulation Runs: ' + runCount);
-          if (lastScenario) lines.push('    Last Scenario Tested:     ' + lastScenario);
+          let rows = '';
+          if (runCount)     rows += kv('Model / simulation runs', String(runCount));
+          if (lastScenario) rows += kv('Last scenario tested', String(lastScenario));
           if (stateSnapshot) {
-            // Emit any key state fields as readable entries
             Object.entries(stateSnapshot).forEach(([k, v]) => {
               if (k === 'lastUpdatedAt') return;
-              if (v !== null && v !== undefined && v !== '') {
-                lines.push('    ' + k + ': ' + String(v));
-              }
+              if (v !== null && v !== undefined && v !== '') rows += kv(k, String(v));
             });
           }
+          flow += modelCard((pageIframeId ? interactiveLabelFor(pageIframeId) : (pageLabels[pageId] || pageId)) + ' — interactive model', rows);
         }
 
-        // Journal textarea responses on this page
         sectResponses.forEach(([k, v]) => {
-          const fullPrompt = promptFor(k);
-          const heading    = responseLabels[k] || k;
-          lines.push('', '  JOURNAL: ' + heading);
-          if (fullPrompt) lines.push('    PROMPT:   ' + fullPrompt);
-          lines.push('    RESPONSE:');
-          lines.push('      ' + (v || '[No response entered]').split('\n').join('\n      '));
+          flow += entryCard(responseLabels[k] || k, promptFor(k), v);
         });
 
-        // Section 12 — orbit system modeler snapshot
         if (showModeler) {
-          lines.push('', '  ORBIT SYSTEM MODELER:');
-          lines.push('    Forward Motion Change:     ' + (modelerMotionLabels[mc.selectedMotion]     || mc.selectedMotion   || '(not selected)'));
-          lines.push('    Satellite Position Change: ' + (modelerPositionLabels[mc.selectedPosition] || mc.selectedPosition || '(not selected)'));
-          lines.push('    Model Runs:                ' + (mc.modelRunCount || 0));
-          if (mc.lastModelOutcome) {
-            lines.push('    Last Model Outcome:        ' + (modelerOutcomeLabels[mc.lastModelOutcome] || mc.lastModelOutcome));
-          }
-          if (mc.lastReason) {
-            lines.push('    Recommendation Filed:      ' + mc.lastReason);
-          }
+          let rows = '';
+          rows += kv('Forward motion change', modelerMotionLabels[mc.selectedMotion] || mc.selectedMotion || '(not selected)');
+          rows += kv('Satellite position change', modelerPositionLabels[mc.selectedPosition] || mc.selectedPosition || '(not selected)');
+          rows += kv('Model runs', String(mc.modelRunCount || 0));
+          if (mc.lastModelOutcome) rows += kv('Last model outcome', modelerOutcomeLabels[mc.lastModelOutcome] || mc.lastModelOutcome);
+          if (mc.lastReason) rows += kv('Recommendation filed', mc.lastReason);
+          flow += modelCard('Orbit System Modeler — student-built', rows);
         }
       });
+      if (!flow.trim()) flow = '<p class="empty">No journal entries recorded yet.</p>';
 
-      if (!anySection) lines.push('', '  No journal entries recorded yet.');
+      // ---------- Lesson path (order visited) ----------
+      let pathRows = '';
+      if (state.path && state.path.length) {
+        state.path.forEach((entry, i) => {
+          pathRows += '<tr><td>' + (i + 1) + '. ' + esc(pageLabels[entry.page] || entry.page) + '</td><td class="t">' + fmtTime(entry.durationSeconds) + '</td></tr>';
+        });
+      } else {
+        pathRows = '<tr><td>No path recorded yet.</td><td class="t">&mdash;</td></tr>';
+      }
 
-      lines.push('', '================================================', '  END OF JOURNAL', '================================================');
+      const dp1q = PATH_STEP_VALUE_LABELS[state.choices && state.choices.teamChoice] || '—';
+      const dp2q = PATH_STEP_VALUE_LABELS[state.choices && state.choices.dp2Choice] || '—';
+      const dp3q = (choiceValueLabels[state.choices && state.choices.dp3Choice] || PATH_STEP_VALUE_LABELS[state.choices && state.choices.dp3Choice]) || '—';
 
-      // Build filename in the format:  [chosen name]_Mission Control Journal.txt
-      // Strip filesystem-illegal characters from the name but keep spaces and
-      // common punctuation so student names read naturally. If no name was
-      // entered, fall back to just "Mission Control Journal.txt".
-      const cleanName = name
-        .replace(/[<>:"/\\|?*\x00-\x1F]/g, '')   // strip illegal filename chars
-        .replace(/\s+/g, ' ')                      // collapse whitespace
-        .trim()
-        .substring(0, 60);
-      const filename = cleanName
-        ? `${cleanName}_Mission Control Journal.txt`
-        : `Mission Control Journal.txt`;
+      const css = ':root{--accent:#0f7ea8;--accent-dark:#0a5c7a;--accent-light:#e4f4fb;--accent-mid:#b3dff0;--gold:#f5a623;--gold-light:#fff6e0;--sins-orange:#e06a2c;--ink:#1a1a1a;--body:#333;--mid:#555;--muted:#8a94a0;--border:#dce3ea;--paper:#eef2f7;}'
+        + '*{box-sizing:border-box;}'
+        + "body{margin:0;background:var(--paper);color:var(--body);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;line-height:1.6;font-size:16px;}"
+        + '.wrap{max-width:760px;margin:0 auto;padding:28px 20px 60px;}'
+        + '.hero{background:var(--accent-dark);color:#fff;border-radius:16px;padding:24px;}'
+        + '.hero h1{margin:0;font-size:24px;font-weight:800;}'
+        + '.hero .sub{color:var(--gold);font-weight:700;margin-top:2px;}'
+        + '.meta{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13.5px;color:#cfe6f0;}'
+        + '.meta b{color:#fff;}'
+        + '.std{margin-top:14px;background:rgba(255,255,255,.10);border-radius:10px;padding:10px 13px;font-size:13px;color:#eaf6fb;}'
+        + 'h1,h2,h3{font-weight:800;}'
+        + '.section-label{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-dark);font-weight:800;margin:28px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--accent-mid);}'
+        + '.quick{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 4px;}'
+        + '.qcard{flex:1;min-width:150px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;border-top:4px solid var(--accent);}'
+        + '.qcard .step{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;}'
+        + '.qcard .pick{font-weight:800;font-size:15px;margin-top:3px;color:var(--accent-dark);}'
+        + '.qcard.time{border-top-color:var(--gold);}.qcard.time .pick{color:var(--sins-orange);}'
+        + '.decision{background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:12px;padding:12px 16px;margin-bottom:14px;}'
+        + '.decision .dic{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);font-weight:800;}'
+        + '.decision .dl{font-weight:700;color:var(--accent-dark);margin-top:2px;}'
+        + '.decision .dv{font-weight:800;color:var(--ink);margin-top:2px;}'
+        + '.entry{background:#fff;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:0 12px 12px 0;padding:14px 18px;margin-bottom:14px;}'
+        + '.entry .ekic{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;margin-bottom:4px;}'
+        + '.entry h3.q{margin:0 0 8px;color:var(--accent-dark);font-weight:700;font-size:15px;}'
+        + ".entry .a{margin:0;white-space:pre-wrap;font-family:Georgia,'Times New Roman',serif;}"
+        + '.empty{color:var(--muted);font-style:italic;}'
+        + '.model{background:var(--gold-light);border:2px solid var(--gold);border-radius:12px;padding:14px 18px;margin-bottom:14px;}'
+        + '.model-h{font-weight:800;color:var(--sins-orange);margin-bottom:10px;font-size:15px;}'
+        + '.kv{display:flex;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px dashed rgba(0,0,0,.10);}'
+        + '.kv:last-child{border-bottom:none;}'
+        + '.kv .kk{color:var(--mid);}.kv .kvv{font-weight:700;color:var(--ink);text-align:right;}'
+        + '.timing{background:#fff;border:1px solid var(--border);border-radius:12px;padding:8px 4px;}'
+        + '.timing table{width:100%;border-collapse:collapse;font-size:14px;}'
+        + '.timing td{padding:7px 14px;border-bottom:1px solid var(--border);}'
+        + '.timing tr:last-child td{border-bottom:none;}'
+        + '.timing td.t{text-align:right;color:var(--accent-dark);font-weight:700;white-space:nowrap;}'
+        + '.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}'
+        + '.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);text-align:center;}'
+        + '@media print{body{background:#fff;}.wrap{max-width:none;padding:0;}.entry,.decision,.model,.hero{break-inside:avoid;page-break-inside:avoid;}}';
 
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+        + '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        + '<title>Mission Control \u2014 Mission Journal' + (name ? ' \u2014 ' + esc(name) : '') + '</title>'
+        + '<style>' + css + '</style></head><body><div class="wrap">'
+        + '<div class="hero"><h1>Mission Control: Tracking Aurora-3</h1><div class="sub">Mission Journal</div>'
+        + '<div class="meta">'
+        + '<span><b>Intern:</b> ' + (name ? esc(name) : '(not provided)') + '</span>'
+        + '<span><b>Resume code:</b> ' + esc(state.resumeCode || 'N/A') + '</span>'
+        + '<span><b>Exported:</b> ' + esc(ts) + '</span>'
+        + (state.startedAt ? '<span><b>Started:</b> ' + esc(new Date(state.startedAt).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' })) + '</span>' : '')
+        + '</div>'
+        + '<div class="std"><b>Arizona Grade 5 \u00b7 5.E2U1.8</b> \u2014 Obtain and communicate evidence to support an explanation of the patterns of objects in the sky and how Earth\u2019s motion and gravity keep objects in orbit.</div>'
+        + '</div>'
+        + '<div class="quick" aria-label="Quick summary">'
+        + '<div class="qcard"><div class="step">1 \u00b7 Begin</div><div class="pick">' + esc(dp1q) + '</div></div>'
+        + '<div class="qcard"><div class="step">2 \u00b7 Focus</div><div class="pick">' + esc(dp2q) + '</div></div>'
+        + '<div class="qcard"><div class="step">3 \u00b7 Mission</div><div class="pick">' + esc(dp3q) + '</div></div>'
+        + '<div class="qcard time"><div class="step">Total time</div><div class="pick">' + fmtTime(state.totalSeconds) + '</div></div>'
+        + '</div>'
+        + '<h2 class="section-label" style="border-color:var(--gold);color:var(--sins-orange);">Mission journal &amp; student-built models</h2>'
+        + flow
+        + '<h2 class="section-label">Lesson path (in order visited)</h2>'
+        + '<div class="timing"><table><caption class="sr-only">Pages visited and time on each.</caption><tbody>'
+        + pathRows
+        + '<tr class="total"><td style="font-weight:800;background:var(--accent-light);">Total time</td><td class="t" style="background:var(--accent-light);">' + fmtTime(state.totalSeconds) + '</td></tr>'
+        + '</tbody></table></div>'
+        + '<div class="foot">\u00a9 2026 Brooke Toon \u00b7 Stories in Science Framework \u00b7 Generative AI tools were used to support development of this instructional material.</div>'
+        + '</div></body></html>';
+
+      const cleanName = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '').replace(/\s+/g, ' ').trim().substring(0, 60);
+      const filename = cleanName ? cleanName + '_Mission Control Journal.html' : 'Mission Control Journal.html';
+
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href = url; a.download = filename;
