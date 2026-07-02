@@ -4087,7 +4087,9 @@
           lastModelOutcome:  data.lastModelOutcome  || null,
           lastComboKey:      data.lastComboKey      || null,
           lastUpdatedAt:     Date.now(),
-          lastReason:        data.reason            || null
+          lastReason:        data.reason            || null,
+          r1: data.r1 || '', r2: data.r2 || '', r3: data.r3 || '', r4: data.r4 || '',
+          recText: data.recText || null
         };
         saveState();
 
@@ -4370,7 +4372,28 @@
       const modelerPositionLabels = { 'closer':'Adjust Orbit Position Inward (Position A)', 'same':'Maintain Current Orbit Position (Position B)', 'farther':'Adjust Orbit Position Outward (Position C)' };
       const modelerOutcomeLabels = { 'stable':'Stable orbit — the modeled orbit moved closest to the target path', 'moderate':'Moderate improvement — closer to the target, but small instability remained', 'partial':'Partial improvement — slight improvement, system not fully balanced', 'worse':'Worse — the orbit became wider or less stable' };
       const mc = state.modelerConstraints;
-      const mcHasData = !!(mc && (mc.selectedMotion || mc.selectedPosition || mc.modelRunCount));
+      const mcHasData = !!(mc && (mc.selectedMotion || mc.selectedPosition || mc.modelRunCount || mc.r1 || mc.r2 || mc.r3 || mc.r4));
+      const NEW_ORBIT_IFRAME = (INTERACTIVE_MAP['page-section12'] && INTERACTIVE_MAP['page-section12'].iframeId) || 'iframe-new-orbit-data';
+
+      // The Mission Recommendation board — the student-built artifact from Section 12.
+      function buildMissionBoard(mc) {
+        const motion = modelerMotionLabels[mc.selectedMotion] || mc.selectedMotion || '(not selected)';
+        const position = modelerPositionLabels[mc.selectedPosition] || mc.selectedPosition || '(not selected)';
+        const block = (title, body, extra) =>
+          '<div class="bblock"><div class="bt">' + esc(title) + '</div>'
+          + '<div class="bb">' + (body && String(body).trim() ? esc(body) : '<span class="empty">[No response entered]</span>') + '</div>'
+          + (extra ? '<div class="bmeta">' + extra + '</div>' : '')
+          + '</div>';
+        let b = '<div class="model"><div class="model-h">🛰 Mission Recommendation — student-built</div>';
+        b += block('New Orbit Data Patterns', mc.r1);
+        b += block('Possible Adjustment', mc.r2, 'Forward Motion: <b>' + esc(motion) + '</b><br>Satellite Position: <b>' + esc(position) + '</b>');
+        b += block('Data Review Result', mc.r3);
+        b += block('Scientific Explanation', mc.r4);
+        if (mc.recText) b += block('Final Recommendation to Mission Control', mc.recText);
+        b += '<div class="bfoot">Model runs: <b>' + String(mc.modelRunCount || 0) + '</b></div>';
+        b += '</div>';
+        return b;
+      }
 
       function interactiveLabelFor(iframeId) {
         let label = iframeId;
@@ -4419,7 +4442,10 @@
           flow += decisionCard(label, valLabel);
         });
 
+        const renderBoard = (pageId === 'page-section12') && mcHasData;
+
         sectIframes.forEach(([iframeId, items]) => {
+          if (renderBoard && iframeId === NEW_ORBIT_IFRAME) return; // its content is shown in the board
           const iLabel = interactiveLabelFor(iframeId);
           if (Array.isArray(items)) {
             items.forEach(item => { flow += entryCard(iLabel, item && item.label ? item.label : '', item && item.value ? item.value : ''); });
@@ -4428,7 +4454,7 @@
           }
         });
 
-        if (hasRunData) {
+        if (hasRunData && !(renderBoard && pageIframeId === NEW_ORBIT_IFRAME)) {
           let rows = '';
           if (runCount)     rows += kv('Model / simulation runs', String(runCount));
           if (lastScenario) rows += kv('Last scenario tested', String(lastScenario));
@@ -4445,14 +4471,8 @@
           flow += entryCard(responseLabels[k] || k, promptFor(k), v);
         });
 
-        if (showModeler) {
-          let rows = '';
-          rows += kv('Forward motion change', modelerMotionLabels[mc.selectedMotion] || mc.selectedMotion || '(not selected)');
-          rows += kv('Satellite position change', modelerPositionLabels[mc.selectedPosition] || mc.selectedPosition || '(not selected)');
-          rows += kv('Model runs', String(mc.modelRunCount || 0));
-          if (mc.lastModelOutcome) rows += kv('Last model outcome', modelerOutcomeLabels[mc.lastModelOutcome] || mc.lastModelOutcome);
-          if (mc.lastReason) rows += kv('Recommendation filed', mc.lastReason);
-          flow += modelCard('Orbit System Modeler — student-built', rows);
+        if (renderBoard) {
+          flow += buildMissionBoard(mc);
         }
       });
       if (!flow.trim()) flow = '<p class="empty">No journal entries recorded yet.</p>';
@@ -4498,6 +4518,12 @@
         + '.empty{color:var(--muted);font-style:italic;}'
         + '.model{background:var(--gold-light);border:2px solid var(--gold);border-radius:12px;padding:14px 18px;margin-bottom:14px;}'
         + '.model-h{font-weight:800;color:var(--sins-orange);margin-bottom:10px;font-size:15px;}'
+        + '.bblock{border-top:1px dashed rgba(0,0,0,.12);padding:10px 0;}'
+        + '.bblock:first-of-type{border-top:none;padding-top:0;}'
+        + '.bt{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--sins-orange);font-weight:800;margin-bottom:4px;}'
+        + '.bb{white-space:pre-wrap;font-family:Georgia,\'Times New Roman\',serif;}'
+        + '.bmeta{margin-top:6px;font-size:13.5px;color:var(--mid);}'
+        + '.bfoot{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(0,0,0,.12);font-size:13px;color:var(--mid);}'
         + '.kv{display:flex;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px dashed rgba(0,0,0,.10);}'
         + '.kv:last-child{border-bottom:none;}'
         + '.kv .kk{color:var(--mid);}.kv .kvv{font-weight:700;color:var(--ink);text-align:right;}'
