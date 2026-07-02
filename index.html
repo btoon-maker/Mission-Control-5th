@@ -4472,6 +4472,13 @@
         });
 
         if (renderBoard) {
+          const q12 = [
+            ['What patterns did you observe in the new Aurora-3 orbit data?', mc.r1],
+            ['What possible adjustments did you test in the orbit model?', mc.r2],
+            ['How did your possible adjustments affect the orbit path?', mc.r3],
+            ['Why is your recommended adjustment supported by the data? Use ideas about Earth\u2019s pull toward Earth\u2019s center, forward motion, and orbit path patterns.', mc.r4]
+          ];
+          q12.forEach(function(qa){ flow += entryCard('New Orbit Data Review (Section 12)', qa[0], qa[1]); });
           flow += buildMissionBoard(mc);
         }
       });
