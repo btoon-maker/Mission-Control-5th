@@ -4469,7 +4469,6 @@
 
       const dp1q = PATH_STEP_VALUE_LABELS[state.choices && state.choices.teamChoice] || '—';
       const dp2q = PATH_STEP_VALUE_LABELS[state.choices && state.choices.dp2Choice] || '—';
-      const dp3q = (choiceValueLabels[state.choices && state.choices.dp3Choice] || PATH_STEP_VALUE_LABELS[state.choices && state.choices.dp3Choice]) || '—';
 
       const css = ':root{--accent:#0f7ea8;--accent-dark:#0a5c7a;--accent-light:#e4f4fb;--accent-mid:#b3dff0;--gold:#f5a623;--gold-light:#fff6e0;--sins-orange:#e06a2c;--ink:#1a1a1a;--body:#333;--mid:#555;--muted:#8a94a0;--border:#dce3ea;--paper:#eef2f7;}'
         + '*{box-sizing:border-box;}'
@@ -4527,7 +4526,6 @@
         + '<div class="quick" aria-label="Quick summary">'
         + '<div class="qcard"><div class="step">1 \u00b7 Begin</div><div class="pick">' + esc(dp1q) + '</div></div>'
         + '<div class="qcard"><div class="step">2 \u00b7 Focus</div><div class="pick">' + esc(dp2q) + '</div></div>'
-        + '<div class="qcard"><div class="step">3 \u00b7 Mission</div><div class="pick">' + esc(dp3q) + '</div></div>'
         + '<div class="qcard time"><div class="step">Total time</div><div class="pick">' + fmtTime(state.totalSeconds) + '</div></div>'
         + '</div>'
         + '<h2 class="section-label" style="border-color:var(--gold);color:var(--sins-orange);">Mission journal &amp; student-built models</h2>'
