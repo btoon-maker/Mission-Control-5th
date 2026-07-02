@@ -1343,7 +1343,7 @@ function notifyLessonHeight() {
       document.documentElement.scrollHeight,
       document.body ? document.body.scrollHeight : 0
     );
-    window.parent.postMessage({ type: 'orbit-system-challenge:height', height: h }, '*');
+    window.parent.postMessage({ type: 'new-orbit-data:height', height: h }, '*');
   } catch (e) {}
 }
 
@@ -1353,7 +1353,7 @@ function notifyLessonHeight() {
 function notifyLessonModelerState(reason) {
   try {
     window.parent.postMessage({
-      type: 'orbit-system-challenge:state',
+      type: 'new-orbit-data:state',
       reason: reason || 'change',
       selectedMotion:    state.selectedMotion    || null,
       selectedPosition:  state.selectedPosition  || null,
@@ -1366,7 +1366,7 @@ function notifyLessonModelerState(reason) {
 
 function notifyLessonComplete() {
   try {
-    window.parent.postMessage({ type: 'orbit-system-challenge:complete' }, '*');
+    window.parent.postMessage({ type: 'new-orbit-data:complete' }, '*');
     notifyLessonModelerState('complete');
     notifyLessonHeight();
   } catch (e) {}
@@ -1381,7 +1381,8 @@ window.addEventListener('load', () => {
 window.addEventListener('resize', notifyLessonHeight);
 window.addEventListener('message', (event) => {
   const data = event.data || {};
-  if (data && data.type === 'orbit-system-challenge:request-height') notifyLessonHeight();
+  if (data && data.type === 'new-orbit-data:request-height') notifyLessonHeight();
+  if (data && data.type === 'new-orbit-data:request-state') notifyLessonModelerState('request');
 });
 
 try {
