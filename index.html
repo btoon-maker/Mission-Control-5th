@@ -2017,7 +2017,7 @@
     <div class="header-controls">
       <span class="resume-code-display">Code: <strong id="display-code">——</strong></span>
       <button class="hdr-btn" onclick="openModal('modal-resume')">Resume</button>
-      <button class="hdr-btn" onclick="openModal('modal-export')">Export Journal</button>
+      <button class="hdr-btn" onclick="openModal('modal-export')" title="Save your field journal as PDF">Save Field Journal as PDF</button>
       <button class="hdr-btn" onclick="openModal('modal-glossary')">📖 Glossary</button>
       <button class="hdr-btn hdr-btn-restart">⟳ Restart Lesson</button>
     </div>
@@ -3227,11 +3227,14 @@
           <div class="mc-banner-body">
             <p>You used evidence, models, and scientific reasoning to review new <strong>Aurora-3</strong> orbit data and prepare a recommendation for Mission Control.</p>
             <p>Follow all three steps below to finish. Do them in order.</p>
-            <p style="font-size:14px;color:rgba(255,255,255,0.85);">You'll need your classroom login/study ID to save your journal and take both surveys.</p>
+            <p style="font-size:14px;color:rgba(255,255,255,0.85);margin:12px 0 6px;"><strong>Step 1: Save Your Field Journal as PDF</strong></p>
+            <p style="font-size:14px;color:rgba(255,255,255,0.85);margin:0 0 12px;">Select <strong>Save Field Journal as PDF</strong>. In the print window, choose <strong>Save as PDF</strong> and save the file using your classroom login/study ID — not your name.</p>
+            <p style="font-size:14px;color:rgba(255,255,255,0.85);margin:0 0 6px;"><strong>Step 2: Complete the Lesson Engagement Survey</strong></p>
+            <p style="font-size:14px;color:rgba(255,255,255,0.85);margin:0;">Continue to the survey and upload your PDF journal when prompted.</p>
           </div>
           <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
             <button class="btn-export-journal" style="width:100%;max-width:340px;" onclick="openModal('modal-export')">
-              Step 1 · Export Mission Journal
+              Step 1 · Save Field Journal as PDF
             </button>
             <a href="https://asu.questionpro.com/t/AdPa5Z9Jcz" target="_blank" rel="noopener" style="display:block;width:100%;max-width:340px;box-sizing:border-box;text-decoration:none;text-align:center;padding:12px 32px;border-radius:50px;border:2px solid #fff;color:#fff;font-family:var(--font-ui);font-size:15px;font-weight:700;letter-spacing:0.02em;">Step 2 · Lesson Engagement Survey ↗</a>
             <a href="https://asu.questionpro.com/t/AdPa5Z9Jc0" target="_blank" rel="noopener" style="display:block;width:100%;max-width:340px;box-sizing:border-box;text-decoration:none;text-align:center;padding:12px 32px;border-radius:50px;border:2px solid #fff;color:#fff;font-family:var(--font-ui);font-size:15px;font-weight:700;letter-spacing:0.02em;">Step 3 · Retrospective Attitudes Toward Science Survey ↗</a>
@@ -3281,15 +3284,15 @@
 <div class="modal-overlay" id="modal-export" onclick="overlayClose(event,'modal-export')">
   <div class="modal-box" role="dialog" aria-modal="true">
     <div class="modal-header">
-      <div class="modal-title">📥 Export Your Mission Journal</div>
+      <div class="modal-title">Save Your Field Journal as PDF</div>
       <button class="modal-close-btn" onclick="closeModal('modal-export')">✕</button>
     </div>
 
     <div class="modal-body">
       <div style="background:#f4f6f8;padding:12px 14px;border-radius:12px;margin-bottom:14px;line-height:1.45;color:#243044 !important;">
         <p style="margin:0 0 10px 0;color:#243044 !important;">
-          <strong style="color:#1f2937 !important;">Use your classroom login/study ID as the file name.</strong><br>
-          Enter it below. You will upload this Mission Journal to your engagement survey.
+          <strong style="color:#1f2937 !important;">Use your classroom login/study ID as the file name — not your name.</strong><br>
+          Enter it below. The styled Mission Journal will open in the browser print window; choose <strong>Save as PDF</strong>.
         </p>
 
         <p style="margin:0;color:#243044 !important;">
@@ -3298,15 +3301,15 @@
         </p>
       </div>
 
-      <p class="modal-text">Download a copy of your journal. Your choices and written responses will be included in the file.</p>
+      <p class="modal-text">Your choices and written responses will be included in the PDF. <strong>MissionControlJournal</strong> will be added automatically to the end of the filename.</p>
 
-      <label class="modal-label" for="export-name-input">login/study ID or name:</label>
-      <input type="text" id="export-name-input" class="modal-input" placeholder="e.g. SIS-001 or Jordan" maxlength="80" />
+      <label class="modal-label" for="export-name-input">Classroom login/study ID:</label>
+      <input type="text" id="export-name-input" class="modal-input" placeholder="e.g. SIS-001" maxlength="80" />
     </div>
 
     <div class="modal-footer">
       <button class="btn-modal-secondary" onclick="closeModal('modal-export')">Cancel</button>
-      <button class="btn-modal-primary" onclick="doExport()">Download Journal (.html)</button>
+      <button class="btn-modal-primary" onclick="doExport()">Save Field Journal as PDF</button>
     </div>
   </div>
 </div>
@@ -3404,7 +3407,7 @@
       </div>
       <div class="modal-body">
         <p class="modal-text">Are you sure you want to restart? <strong style="color:var(--red);">All of your current progress will be erased</strong>, including your choices and written responses. This cannot be undone.</p>
-        <p class="modal-text">To save your work first, click <em>Cancel</em> and use the <strong>Export Journal</strong> button instead.</p>
+        <p class="modal-text">To save your work first, click <em>Cancel</em> and use the <strong>Save Field Journal as PDF</strong> button instead.</p>
       </div>
       <div class="modal-footer">
         <button class="btn-modal-secondary" onclick="closeModal('modal-restart')">No, I do not want to restart the lesson</button>
@@ -4302,6 +4305,11 @@
       recordPageEnter(exportPageId);
 
       const name = document.getElementById('export-name-input').value.trim();
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow pop-ups for this lesson so the PDF print window can open.');
+        return;
+      }
       const now  = new Date();
       const ts   = now.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' });
       const esc  = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -4542,7 +4550,15 @@
         + '.timing td.t{text-align:right;color:var(--accent-dark);font-weight:700;white-space:nowrap;}'
         + '.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}'
         + '.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);text-align:center;}'
-        + '@media print{body{background:#fff;}.wrap{max-width:none;padding:0;}.entry,.decision,.model,.hero{break-inside:avoid;page-break-inside:avoid;}}';
+        + '@page{size:auto;margin:0.5in;}'
+        + '@media print{'
+        + 'html,body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}'
+        + 'body{background:#fff;margin:0;}'
+        + '.wrap{max-width:none;padding:0;}'
+        + '.hero,.qcard,.decision,.entry,.model,.timing{break-inside:avoid;page-break-inside:avoid;}'
+        + '.section-label{break-after:avoid;page-break-after:avoid;}'
+        + '.no-print,button,.hdr-btn,.btn-nav,#site-header,#mission-path-bar{display:none!important;}'
+        + '}';
 
       const html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
         + '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
@@ -4573,17 +4589,31 @@
         + '</div></body></html>';
 
       const cleanName = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '').replace(/\s+/g, ' ').trim().substring(0, 60);
-      const filename = cleanName ? cleanName + '_Mission Control Journal.html' : 'Mission Control Journal.html';
-
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(url);
+      const filename = cleanName ? cleanName + 'MissionControlJournal.pdf' : 'MissionControlJournal.pdf';
 
       closeModal('modal-export');
-      showToast('Journal downloaded ✓');
+
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+
+      const openPrintDialog = () => {
+        try {
+          // Setting the title immediately before print gives Chrome/Edge the best chance
+          // of pre-filling the Save as PDF filename with the classroom login/study ID.
+          printWindow.document.title = filename.replace(/\.pdf$/i, '');
+          printWindow.focus();
+          printWindow.print();
+        } catch (err) {
+          console.error('Unable to open print dialog:', err);
+        }
+      };
+
+      if (printWindow.document.fonts && printWindow.document.fonts.ready) {
+        printWindow.document.fonts.ready.then(() => setTimeout(openPrintDialog, 150));
+      } else {
+        printWindow.addEventListener('load', () => setTimeout(openPrintDialog, 150), { once: true });
+      }
     }
 
     /* ============================================================
